@@ -44,6 +44,33 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{
 .dialog-title-row h2{font-size:23px;line-height:1.2;margin:6px 0}
 @media(max-width:670px){.context-btn{flex:0 0 auto}.context-nav{margin:0 0 9px}.date-pill{display:none}.brand-name{font-size:21px}.dialog-hd{padding:16px 17px 10px}.dialog-content{padding:0 17px 20px}}
 @media(max-width:370px){.brand-name{font-size:19px}.brand{gap:8px}.context-btn{padding:8px 10px}.dialog-nav{min-height:42px}}
+/* A single persistent home target, anchored in the same viewport position everywhere. */
+.global-home{
+  position:fixed;z-index:65;
+  top:calc(13px + env(safe-area-inset-top));
+  left:max(calc(12px + env(safe-area-inset-left)),calc((100vw - 1160px) / 2 + 10px));
+  width:49px;height:49px;display:grid;place-items:center;
+  border:1px solid #6a9e86;border-radius:16px;
+  background:linear-gradient(145deg,#315c4e,#1a3935);color:#ceffe5;
+  box-shadow:0 9px 26px #0009,0 0 0 2px #101d20;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.global-home:hover{background:#36715a;border-color:var(--mint)}
+.global-home:active{transform:scale(.97)}
+.global-home .icon{width:24px;height:24px}
+.topbar{padding-left:66px}
+.x-mark{font-size:24px;line-height:1;font-weight:500;display:inline-block;min-width:18px;text-align:center}
+.dialog-close{border-color:#617181;color:#f1f4f9;background:#30404a}
+.dialog-close:hover{background:#445366;border-color:#a0afbe}
+.overlay{padding-top:calc(77px + env(safe-area-inset-top))}
+.dialog{max-height:min(calc(100dvh - 100px - env(safe-area-inset-top)),900px)}
+@media(max-width:460px){
+  .topbar{padding-left:62px}
+  .brand-glyph{display:none}
+  .header-actions{gap:4px}
+  .global-home{width:47px;height:47px;top:calc(13px + env(safe-area-inset-top))}
+}
+@media(max-width:340px){.brand-tag{font-size:9px;letter-spacing:0}}
 </style>
 </head>
 <body>
@@ -70,6 +97,10 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{
 <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></symbol>
 <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
 </defs></svg>
+<button type="button" id="globalHome" class="global-home" data-nav-home
+        aria-label="Go to Kinegroove home" title="Go to Home">
+  <svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>
+</button>
 <div class="shell"><header class="topbar"><div class="brand"><div class="brand-glyph"><svg class="icon" style="stroke:#123c35"><use href="#i-spark"/></svg></div><div><div class="brand-name">kinegroove<span style="color:var(--mint)">.</span></div><div class="brand-tag">YOUR MOVEMENT, IN MOTION</div></div></div><div class="header-actions"><span class="date-pill" id="headerDate"></span><button class="icon-btn" data-action="settings" aria-label="Settings"><svg class="icon"><use href="#i-settings"/></svg></button></div></header><nav class="context-nav" id="contextNav" aria-label="Page navigation" hidden></nav><main id="app"></main></div>
 <nav class="bottomnav" id="bottomNav" aria-label="Main navigation"></nav><div id="modalRoot"></div><div id="toast" role="status" aria-live="polite"></div><input type="file" id="importFile" accept=".json,application/json" class="hide">
 <script>
@@ -180,7 +211,7 @@ function topScroll(){window.scrollTo({top:0,behavior:'instant'})}
 function switchTo(s){if(screen!==s){navStack.push(screen);if(navStack.length>30)navStack.shift();screen=s}render();topScroll()}
 function goHome(){clearTimer();closeModal();navStack=[];screen='today';render();topScroll()}
 function navigateBack(){if($('#overlay')){clearTimer();closeModal();return}clearTimer();screen=navStack.length?navStack.pop():'today';render();topScroll()}
-function contextNav(){if(screen==='today')return '';const pageNames={today:'Home',train:'Move',insights:'Insights',journal:'Journal',settings:'Settings'};return `<button class="context-btn" data-nav-back aria-label="Go back">${ico('back','sm')}<span>Back</span></button><span class="context-location" aria-current="page">${e(pageNames[screen]||'Page')}</span><button class="context-btn context-home" data-nav-home aria-label="Go home">${ico('home','sm')}<span>Home</span></button>`}
+function contextNav(){if(screen==='today')return '';const pageNames={today:'Home',train:'Move',insights:'Insights',journal:'Journal',settings:'Settings'};return `<button class="context-btn" data-nav-back aria-label="Go back">${ico('back','sm')}<span>Back</span></button><span class="context-location" aria-current="page">${e(pageNames[screen]||'Page')}</span><button class="context-btn context-close" data-nav-home aria-label="Close page and return home"><span class="x-mark" aria-hidden="true">×</span><span>Close</span></button>`}
 
 function days(nDays){return Array.from({length:nDays},(_,i)=>addDays(today(),i-nDays+1))}
 function dayEntries(day){const w=data.workouts.filter(x=>x.date.startsWith(day));const m=data.meals.filter(x=>x.date.startsWith(day));return{workouts:w,meals:m,exercise:w.reduce((s,x)=>s+x.kcal,0),eaten:m.reduce((s,x)=>s+x.kcal,0),rest:resting(day)}}
@@ -275,7 +306,7 @@ function renderSettings(){const p=data.profile;const firstDay=[...data.workouts.
 function render(){const main=$('#app');main.innerHTML=screen==='today'?renderToday():screen==='train'?renderTrain():screen==='insights'?renderInsights():screen==='journal'?renderJournal():renderSettings();$('#bottomNav').innerHTML=nav();const ctx=$('#contextNav');ctx.innerHTML=contextNav();ctx.hidden=screen==='today';$('#headerDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});}
 function showModal(content){$('#modalRoot').innerHTML=`<div class="overlay" id="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-label="Kinegroove editor">${content}</div></div>`;const first=$('#modalRoot input:not([type=hidden]),#modalRoot select,#modalRoot button');if(first)first.focus({preventScroll:true})}
 function closeModal(){$('#modalRoot').innerHTML=''}
-function modalHead(kicker,title){return `<div class="dialog-hd"><div class="dialog-route"><button type="button" class="dialog-nav" data-modal-close aria-label="Back to previous page">${ico('back','sm')} Back</button><button type="button" class="dialog-nav" data-nav-home aria-label="Return home">${ico('home','sm')} Home</button></div><div class="dialog-title-row"><div><div class="eyebrow">${e(kicker)}</div><h2>${e(title)}</h2></div><button type="button" class="close" data-modal-close aria-label="Close dialog">×</button></div></div>`}
+function modalHead(kicker,title){return `<div class="dialog-hd"><div class="dialog-route"><button type="button" class="dialog-nav" data-modal-close aria-label="Back to previous page">${ico('back','sm')} Back</button><button type="button" class="dialog-nav dialog-close" data-modal-close aria-label="Close dialog"><span class="x-mark" aria-hidden="true">×</span> Close</button></div><div class="dialog-title-row"><div><div class="eyebrow">${e(kicker)}</div><h2>${e(title)}</h2></div></div></div>`}
 
 let workoutDraft={};let timerStarted=0,timerAccum=0,timerHandle=null;
 function clearTimer(){if(timerHandle)clearInterval(timerHandle);timerHandle=null;timerStarted=0;timerAccum=0}
